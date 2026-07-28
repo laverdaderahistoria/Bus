@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 import re
 import requests
+from datetime import datetime, timedelta
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -51,14 +52,26 @@ class handler(BaseHTTPRequestHandler):
                             parada_actual = {"parada": t_limpio, "horarios": []}
                             paradas_dict.append(parada_actual)
 
-                itinerario_valido = [p for p in paradas_dict if len(p["horarios"]) > 0]
+                # Obtenemos la hora actual en España (ajustada a formato HH:MM)
+                ahora = datetime.utcnow() + timedelta(hours=2) # Ajuste horario peninsular aproximado
+                hora_actual_str = ahora.strftime("%H:%M")
+
+                # Filtramos las paradas para mostrar únicamente las horas futuras
+                itinerario_valido = []
+                for p in paradas_dict:
+                    horarios_futuros = [h for h in p["horarios"] if h >= hora_actual_str]
+                    if horarios_futuros:
+                        itinerario_valido.append({
+                            "parada": p["parada"],
+                            "horarios": horarios_futuros
+                        })
 
                 html_output = f"""<!DOCTYPE html>
                 <html lang="es">
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Línea: Sangonera - Javalí - Murcia</title>
+                    <title>Próximas Salidas - Línea 91</title>
                     <style>
                         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
                         .container {{ max-width: 600px; margin: 0 auto; }}
@@ -73,8 +86,8 @@ class handler(BaseHTTPRequestHandler):
                 </head>
                 <body>
                     <div class="container">
-                        <h1>🚌 Sangonera la Seca - Javalí Nuevo - Murcia</h1>
-                        <div class="subtitle">Horarios y frecuencias de la ruta</div>
+                        <h1>🚌 Próximas Salidas - Línea 91</h1>
+                        <div class="subtitle">Mostrando solo autobuses pendientes a partir de las {hora_actual_str}</div>
                 """
 
                 if itinerario_valido:
@@ -91,7 +104,7 @@ class handler(BaseHTTPRequestHandler):
                         </div>
                         """
                 else:
-                    html_output += "<p>No hay horarios disponibles en este momento para esta ruta.</p>"
+                    html_output += "<div class=\"card\"><p>No quedan más autobuses programados por hoy para esta ruta.</p></div>"
 
                 html_output += """
                         <div class="footer">Sincronizado con Moovit</div>
