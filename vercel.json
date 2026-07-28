@@ -1,5 +1,7 @@
 {
-  "rewrites": [
-    { "source": "/api/bus", "destination": "/api/bus.py" }
-  ]
+  "functions": {
+    "api/bus.py": {
+      "maxDuration": 10
+    }
+  }
 }
