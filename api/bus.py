@@ -28,31 +28,36 @@ class handler(BaseHTTPRequestHandler):
                 exclusiones = [
                     "Moovit", "Cookie", "Privacy", "About", "Terms", "Ads", "Press", 
                     "Sign", "Log", "EN", "Get the App", "Community", "App Support", 
-                    "Contact Us", "Change direction", "Today", "assets_", "cls-1", "Back"
+                    "Contact Us", "Change direction", "Today", "assets_", "cls-1", 
+                    "Back", "Change day", "Select a stop", "TMP - Monbus"
                 ]
                 
-                # Agrupamos paradas y horarios de forma estructurada
                 paradas_dict = []
                 parada_actual = None
                 
                 for t in matches:
                     t_limpio = t.strip()
-                    if not t_limpio or t_limpio.startswith("{") or any(exc.lower() in t_limpio.lower() for exc in exclusiones):
+                    # Ignorar CSS, vacíos o textos de la interfaz de usuario
+                    if not t_limpio or "{" in t_limpio or "}" in t_limpio or any(exc.lower() in t_limpio.lower() for exc in exclusiones):
                         continue
                     
-                    # Si detectamos que contiene formato de hora (ej: "15:00") o "Additional Times"
+                    # Si es una hora o bloque de horarios
                     if re.search(r'\d{1,2}:\d{2}', t_limpio) or "Additional Times" in t_limpio:
                         if parada_actual and t_limpio != "Additional Times":
-                            parada_actual["horarios"].append(t_limpio)
+                            # Limpiamos y separamos por comas si vienen varias horas juntas
+                            for hora in t_limpio.split(","):
+                                hora_limpia = hora.strip()
+                                if hora_limpia and hora_limpia not in parada_actual["horarios"]:
+                                    parada_actual["horarios"].append(hora_limpia)
                     else:
-                        # Es un nombre de parada nuevo
+                        # Detectar nombre de parada válido (evitando números sueltos de línea como "91")
                         if len(t_limpio) > 2 and not t_limpio.isdigit():
                             parada_actual = {"parada": t_limpio, "horarios": []}
                             paradas_dict.append(parada_actual)
 
                 resultado = {
                     "linea": "TMP - Monbus 91",
-                    "itinerario": paradas_dict[:10]
+                    "itinerario": [p for p in paradas_dict if len(p["horarios"]) > 0]  # Solo devolvemos paradas que tengan horarios activos
                 }
                 
                 self.wfile.write(json.dumps(resultado, ensure_ascii=False, indent=2).encode('utf-8'))
