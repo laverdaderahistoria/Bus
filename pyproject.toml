@@ -1,2 +1,2 @@
 [tool.vercel]
-entrypoint = "api/bus:handler"
+entrypoint = "api.bus:handler"
