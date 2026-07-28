@@ -1,7 +1,7 @@
 from http.server import BaseHTTPRequestHandler
 import json
+import re
 import requests
-from bs4 import BeautifulSoup
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -22,24 +22,24 @@ class handler(BaseHTTPRequestHandler):
             self.end_headers()
             
             if res.status_code == 200:
-                # Parseamos el HTML con BeautifulSoup
-                soup = BeautifulSoup(res.text, 'html.parser')
+                html_content = res.text
                 
-                # Buscamos los elementos de las paradas o los horarios en la página
-                paradas = []
-                # Buscamos los nombres de las paradas que aparecen en la interfaz
-                for item in soup.find_all(class_=lambda x: x and ('stop' in x.lower() or 'name' in x.lower())):
-                    texto = item.get_text(strip=True)
-                    if texto and texto not in paradas and len(texto) < 50:
-                        paradas.append(texto)
-
-                # Si no encuentra clases específicas, extraemos los textos relevantes
-                if not paradas:
-                    paradas = [p.get_text(strip=True) for p in soup.find_all(['span', 'div', 'a']) if len(p.get_text(strip=True)) > 3][:15]
+                # Buscamos coincidencias de texto limpio usando expresiones regulares nativas
+                # Extraemos posibles nombres de paradas o contenidos de texto entre etiquetas HTML comunes
+                matches = re.findall(r'>([^<>\n]{3,40})<', html_content)
+                
+                # Filtramos resultados basura para quedarnos con los textos limpios relevantes
+                textos_filtrados = []
+                exclusiones = ["Moovit", "Cookie", "Privacy", "About", "Terms", "Ads", "Press", "Sign", "Log", "Bus", "Line"]
+                
+                for t in matches:
+                    t_limpio = t.strip()
+                    if t_limpio and not any(exc in t_limpio for exc in exclusiones) and t_limpio not in textos_filtrados:
+                        textos_filtrados.append(t_limpio)
 
                 resultado = {
                     "linea": "TMP - Monbus 91",
-                    "elementos_encontrados": paradas[:10]
+                    "paradas_y_datos": textos_filtrados[:15]
                 }
                 
                 self.wfile.write(json.dumps(resultado, ensure_ascii=False).encode('utf-8'))
