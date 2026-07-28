@@ -12,7 +12,7 @@ class handler(BaseHTTPRequestHandler):
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Línea 91 - Mapa y Horarios en Vivo</title>
+            <title>Línea 91 - Murcia</title>
             <style>
                 body, html {
                     margin: 0;
@@ -28,26 +28,27 @@ class handler(BaseHTTPRequestHandler):
                     top: 0;
                     left: 0;
                     right: 0;
-                    height: 50px;
+                    height: 45px;
                     background: #1a73e8;
                     color: white;
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    padding: 0 20px;
+                    padding: 0 15px;
                     font-weight: bold;
                     z-index: 10;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }
                 .iframe-container {
                     position: absolute;
-                    top: 50px;
+                    top: 45px;
                     bottom: 0;
                     left: 0;
                     right: 0;
+                    overflow: hidden;
                 }
+                /* Truco para hacer zoom y recortar la barra lateral de Moovit que molesta a la derecha */
                 iframe {
-                    width: 100%;
+                    width: calc(100% + 350px);
                     height: 100%;
                     border: none;
                 }
@@ -56,7 +57,6 @@ class handler(BaseHTTPRequestHandler):
         <body>
             <div class="header">
                 <span>🚌 Línea 91: Sangonera - Javalí - Murcia</span>
-                <span style="font-size: 13px; font-weight: normal; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;">Vista Oficial</span>
             </div>
             <div class="iframe-container">
                 <iframe src="https://moovitapp.com/tripplan/murcia-3738/lines/lineName/65629805/5931424/en?customerId=4908&ref=16&af_sub8=%252F&af_sub9=Search%20bar%20button&query=Sangonera%20la%20Seca%20-%20Javal%C3%AD%20Nuevo%20-%20Murcia"></iframe>
