@@ -24,22 +24,27 @@ class handler(BaseHTTPRequestHandler):
             if res.status_code == 200:
                 html_content = res.text
                 
-                # Buscamos coincidencias de texto limpio usando expresiones regulares nativas
-                # Extraemos posibles nombres de paradas o contenidos de texto entre etiquetas HTML comunes
-                matches = re.findall(r'>([^<>\n]{3,40})<', html_content)
+                # Extraemos textos entre etiquetas
+                matches = re.findall(r'>([^<>\n]{2,50})<', html_content)
                 
-                # Filtramos resultados basura para quedarnos con los textos limpios relevantes
+                # Filtramos menús de navegación, código CSS y elementos irrelevantes
+                exclusiones = [
+                    "Moovit", "Cookie", "Privacy", "About", "Terms", "Ads", "Press", 
+                    "Sign", "Log", "EN", "Get the App", "Community", "App Support", 
+                    "Contact Us", "Change direction", "Today", "assets_", "cls-1"
+                ]
+                
                 textos_filtrados = []
-                exclusiones = ["Moovit", "Cookie", "Privacy", "About", "Terms", "Ads", "Press", "Sign", "Log", "Bus", "Line"]
-                
                 for t in matches:
                     t_limpio = t.strip()
-                    if t_limpio and not any(exc in t_limpio for exc in exclusiones) and t_limpio not in textos_filtrados:
-                        textos_filtrados.append(t_limpio)
+                    # Comprobamos que tenga contenido válido y no sea parte de la interfaz web
+                    if t_limpio and not t_limpio.startswith("{") and not any(exc.lower() in t_limpio.lower() for exc in exclusiones):
+                        if t_limpio not in textos_filtrados:
+                            textos_filtrados.append(t_limpio)
 
                 resultado = {
                     "linea": "TMP - Monbus 91",
-                    "paradas_y_datos": textos_filtrados[:15]
+                    "paradas_y_horarios": textos_filtrados[:15]
                 }
                 
                 self.wfile.write(json.dumps(resultado, ensure_ascii=False).encode('utf-8'))
