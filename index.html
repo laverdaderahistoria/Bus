@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Bus Murcia</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; background: #121212; color: white; }
+        #map { height: 80vh; width: 100%; }
+        #info { height: 20vh; padding: 15px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div id="info">
+        <h3>Línea 91 - Tiempo Real</h3>
+        <div id="status">Consultando servidor Python...</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([37.9838, -1.1280], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        async function obtenerBus() {
+            try {
+                // Llama al script api/bus.py en Vercel de forma relativa
+                const res = await fetch('/api/bus');
+                const data = await res.json();
+                
+                document.getElementById('status').innerText = 'Datos recibidos correctamente de Moovit.';
+                console.log("Respuesta de la API:", data);
+            } catch (err) {
+                document.getElementById('status').innerText = 'Error consultando los datos.';
+                console.error(err);
+            }
+        }
+
+        obtenerBus();
+    </script>
+</body>
+</html>
