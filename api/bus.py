@@ -17,7 +17,7 @@ class handler(BaseHTTPRequestHandler):
             res = requests.get(url, headers=headers, timeout=8)
             
             self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             
@@ -51,20 +51,60 @@ class handler(BaseHTTPRequestHandler):
                             parada_actual = {"parada": t_limpio, "horarios": []}
                             paradas_dict.append(parada_actual)
 
-                resultado = {
-                    "linea": "TMP - Monbus 91",
-                    "itinerario": [p for p in paradas_dict if len(p["horarios"]) > 0]
-                }
-                
-                self.wfile.write(json.dumps(resultado, ensure_ascii=False, indent=2).encode('utf-8'))
+                itinerario_valido = [p for p in paradas_dict if len(p["horarios"]) > 0]
+
+                # Construimos el diseño HTML moderno y responsivo
+                html_output = f"""<!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Horarios Línea 91 - TMP Monbus</title>
+                    <style>
+                        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
+                        .container {{ max-width: 600px; margin: 0 auto; }}
+                        h1 {{ color: #1a73e8; font-size: 24px; margin-bottom: 5px; }}
+                        .subtitle {{ color: #666; font-size: 14px; margin-bottom: 25px; }}
+                        .card {{ background: #fff; padding: 16px 20px; margin-bottom: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid #1a73e8; }}
+                        .parada-nombre {{ font-size: 16px; font-weight: bold; color: #202124; margin-bottom: 10px; }}
+                        .horarios-list {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+                        .badge {{ background: #e8f0fe; color: #1a73e8; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 550; }}
+                        .footer {{ text-align: center; font-size: 12px; color: #888; margin-top: 30px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>🚌 TMP - Monbus Línea 91</h1>
+                        <div class="subtitle">Próximas llegadas en tiempo real</div>
+                """
+
+                if itinerario_valido:
+                    for item in itinerario_valido:
+                        html_output += f"""
+                        <div class="card">
+                            <div class="parada-nombre">📍 {item['parada']}</div>
+                            <div class="horarios-list">
+                        """
+                        for hora in item['horarios']:
+                            html_output += f'<span class="badge">🕒 {hora}</span>'
+                        html_output += """
+                            </div>
+                        </div>
+                        """
+                else:
+                    html_output += "<p>No hay horarios disponibles en este momento.</p>"
+
+                html_output += """
+                        <div class="footer">Actualizado automáticamente desde Moovit</div>
+                    </div>
+                </body>
+                </html>
+                """
+
+                self.wfile.write(html_output.encode('utf-8'))
             else:
-                error_data = json.dumps({"status": res.status_code, "error": "No se pudo conectar"})
-                self.wfile.write(error_data.encode('utf-8'))
+                self.wfile.write(b"Error al conectar con la fuente de datos.")
                 
         except Exception as e:
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            error_data = json.dumps({"error": str(e)})
-            self.wfile.write(error_data.encode('utf-8'))
+            error_msg = f"<!DOCTYPE html><html><body><h3>Error interno:</h3><p>{str(e)}</p></body></html>"
+            self.wfile.write(error_msg.encode('utf-8'))
