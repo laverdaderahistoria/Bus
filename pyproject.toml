@@ -1,2 +1,10 @@
+[project]
+name = "bus"
+version = "0.1.0"
+description = ""
+dependencies = [
+    # pon aquí tus dependencias si las tienes, o déjalo vacío
+]
+
 [tool.vercel]
-entrypoint = "api.bus:handler"
+entrypoint = "api/bus.py"
