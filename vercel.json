@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/bus", "destination": "/api/bus.py" }
+  ]
+}
