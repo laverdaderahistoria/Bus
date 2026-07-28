@@ -16,9 +16,7 @@ class handler(BaseHTTPRequestHandler):
             "moovit_client_version": "5.151.2/V567",
             "moovit_customer_id": "4908",
             "moovit_metro_id": "3738",
-            "moovit_phone_type": "2",
-            "moovit_user_key": "F42722",
-            "x-aws-waf-token": "9c2c9c9e-85d0-43ac-82d8-ddeee4309353:HQoAeGlJhLI/AAAA:B2IqhjBW1QLvpARnKcyCQMmKOFuxW7ybIeHOh9M66syg4k79II1exdtO0s6DGqPyj9EqQk2SyAFQay4isELTMlLN3v+Gc437Vz73aL/2jfz/HazxuW4fE+dsctrA111J3xYHipAhhOGAUPNQv8pqYh329RiChNSA/jUx5N52XpsZgU09NzYSIoQBzDk2+3b3L17DyRN/i6dK3S1wX+U2WqMSxsbja4GMNfTLrC8dThQYESkgnJ1zkUbr+eZkzIgzc1sF"
+            "moovit_phone_type": "2"
         }
 
         payload = {
@@ -27,23 +25,23 @@ class handler(BaseHTTPRequestHandler):
         }
 
         try:
-            res = requests.post(url, headers=headers, json=payload, timeout=5)
+            res = requests.post(url, headers=headers, json=payload, timeout=8)
             
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             
-            if res.status_code == 200:
+            if res.status_code == 200 and res.content:
                 self.wfile.write(res.content)
             else:
-                error_data = json.dumps({"status_moovit": res.status_code, "text": res.text})
-                self.wfile.write(error_data.encode('utf-8'))
+                fallback_data = json.dumps({"status": res.status_code, "respuesta": res.text})
+                self.wfile.write(fallback_data.encode('utf-8'))
                 
         except Exception as e:
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            error_data = json.dumps({"error_conexion": str(e)})
+            error_data = json.dumps({"error": str(e)})
             self.wfile.write(error_data.encode('utf-8'))
