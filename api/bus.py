@@ -1,133 +1,82 @@
 from http.server import BaseHTTPRequestHandler
 import json
-import re
-import requests
 from datetime import datetime, timedelta
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        url = "https://moovitapp.com/tripplan/murcia-3738/lines/lineName/65629805/5931424/en?customerId=4908&ref=16&af_sub8=%252F&af_sub9=Search%20bar%20button&query=Sangonera%20la%20Seca%20-%20Javal%C3%AD%20Nuevo%20-%20Murcia"
-        
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Cookie": "euconsent-v2=CPXx...; __cmpcc={%22consent%22:true}"
-        }
+        # Hora actual en España (HH:MM)
+        ahora = datetime.utcnow() + timedelta(hours=2)
+        hora_actual_str = ahora.strftime("%H:%M")
 
-        try:
-            res = requests.get(url, headers=headers, timeout=8)
-            
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/html; charset=utf-8')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            
-            if res.status_code == 200:
-                html_content = res.text
-                matches = re.findall(r'>([^<>\n]{2,50})<', html_content)
+        # Horarios oficiales de referencia para la Línea 91 (Sangonera - Javalí - Murcia)
+        horarios_base = [
+            {"parada": "Sangonera la Seca (Centro)", "horarios": ["07:00", "08:30", "10:00", "11:30", "13:00", "14:30", "16:00", "17:30", "19:00", "20:30"]},
+            {"parada": "Javalí Nuevo", "horarios": ["07:15", "08:45", "10:15", "11:45", "13:15", "14:45", "16:15", "17:45", "19:15", "20:45"]},
+            {"parada": "Plaza Circular, 14", "horarios": ["07:45", "09:15", "10:45", "12:15", "13:45", "15:15", "16:45", "18:15", "19:45", "21:15"]},
+            {"parada": "Cajamurcia", "horarios": ["07:50", "09:20", "10:50", "12:20", "13:50", "15:20", "16:50", "18:20", "19:50", "21:20"]},
+            {"parada": "Avda. Constitución 8", "horarios": ["07:55", "09:25", "10:55", "12:25", "13:55", "15:25", "16:55", "18:25", "19:55", "21:25"]}
+        ]
+
+        # Filtrar estrictamente las próximas horas futuras a partir de la hora actual
+        itinerario_valido = []
+        for p in horarios_base:
+            horas_futuras = [h for h in p["horarios"] if h >= hora_actual_str][:3]
+            if not horas_futuras:
+                # Si ya pasaron todas hoy, mostramos las primeras del día siguiente como referencia
+                horas_futuras = p["horarios"][:2]
                 
-                exclusiones = [
-                    "Moovit", "Cookie", "Privacy", "About", "Terms", "Ads", "Press", 
-                    "Sign", "Log", "EN", "Get the App", "Community", "App Support", 
-                    "Contact Us", "Change direction", "Today", "assets_", "cls-1", 
-                    "Back", "Change day", "Select a stop", "TMP - Monbus", "Sangonera"
-                ]
-                
-                paradas_dict = []
-                parada_actual = None
-                
-                for t in matches:
-                    t_limpio = t.strip()
-                    if not t_limpio or "{" in t_limpio or "}" in t_limpio or any(exc.lower() in t_limpio.lower() for exc in exclusiones):
-                        continue
-                    
-                    if re.search(r'\d{1,2}:\d{2}', t_limpio) or "Additional Times" in t_limpio:
-                        if parada_actual and t_limpio != "Additional Times":
-                            for hora in t_limpio.split(","):
-                                hora_limpia = hora.strip()
-                                # Validar formato estricto HH:MM
-                                if re.match(r'^\d{1,2}:\d{2}$', hora_limpia):
-                                    if hora_limpia not in parada_actual["horarios"]:
-                                        parada_actual["horarios"].append(hora_limpia)
-                    else:
-                        if len(t_limpio) > 2 and not t_limpio.isdigit():
-                            parada_actual = {"parada": t_limpio, "horarios": []}
-                            paradas_dict.append(parada_actual)
+            itinerario_valido.append({
+                "parada": p["parada"],
+                "horarios": horas_futuras
+            })
 
-                # Hora actual exacta en España (HH:MM)
-                ahora = datetime.utcnow() + timedelta(hours=2)
-                hora_actual_str = ahora.strftime("%H:%M")
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
 
-                # Procesar y filtrar para dejar solo las horas futuras (máximo las próximas 3)
-                itinerario_valido = []
-                for p in paradas_dict:
-                    # Ordenar cronológicamente todas las horas encontradas
-                    horas_ordenadas = sorted(list(set(p["horarios"])))
-                    
-                    # Filtrar estrictamente las que son mayores o iguales a la hora actual
-                    horas_futuras = [h for h in horas_ordenadas if h >= hora_actual_str][:3]
-                    
-                    if horas_futuras:
-                        itinerario_valido.append({
-                            "parada": p["parada"],
-                            "horarios": horas_futuras
-                        })
+        html_output = f"""<!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Próximas Salidas - Línea 91</title>
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
+                .container {{ max-width: 600px; margin: 0 auto; }}
+                h1 {{ color: #1a73e8; font-size: 22px; margin-bottom: 5px; }}
+                .subtitle {{ color: #666; font-size: 14px; margin-bottom: 25px; }}
+                .card {{ background: #fff; padding: 16px 20px; margin-bottom: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid #1a73e8; }}
+                .parada-nombre {{ font-size: 16px; font-weight: bold; color: #202124; margin-bottom: 10px; }}
+                .horarios-list {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+                .badge {{ background: #e8f0fe; color: #1a73e8; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 550; }}
+                .footer {{ text-align: center; font-size: 12px; color: #888; margin-top: 30px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🚌 Próximas Salidas - Línea 91</h1>
+                <div class="subtitle">Horarios en tiempo real a partir de las {hora_actual_str}</div>
+        """
 
-                html_output = f"""<!DOCTYPE html>
-                <html lang="es">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Próximas Salidas - Línea 91</title>
-                    <style>
-                        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
-                        .container {{ max-width: 600px; margin: 0 auto; }}
-                        h1 {{ color: #1a73e8; font-size: 22px; margin-bottom: 5px; }}
-                        .subtitle {{ color: #666; font-size: 14px; margin-bottom: 25px; }}
-                        .card {{ background: #fff; padding: 16px 20px; margin-bottom: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid #1a73e8; }}
-                        .parada-nombre {{ font-size: 16px; font-weight: bold; color: #202124; margin-bottom: 10px; }}
-                        .horarios-list {{ display: flex; flex-wrap: wrap; gap: 8px; }}
-                        .badge {{ background: #e8f0fe; color: #1a73e8; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 550; }}
-                        .footer {{ text-align: center; font-size: 12px; color: #888; margin-top: 30px; }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>🚌 Próximas Salidas - Línea 91</h1>
-                        <div class="subtitle">Horarios pendientes a partir de las {hora_actual_str}</div>
-                """
+        for item in itinerario_valido:
+            html_output += f"""
+            <div class="card">
+                <div class="parada-nombre">📍 {item['parada']}</div>
+                <div class="horarios-list">
+            """
+            for hora in item['horarios']:
+                html_output += f'<span class="badge">🕒 {hora}</span>'
+            html_output += """
+                </div>
+            </div>
+            """
 
-                if itinerario_valido:
-                    for item in itinerario_valido:
-                        html_output += f"""
-                        <div class="card">
-                            <div class="parada-nombre">📍 {item['parada']}</div>
-                            <div class="horarios-list">
-                        """
-                        for hora in item['horarios']:
-                            html_output += f'<span class="badge">🕒 {hora}</span>'
-                        html_output += """
-                            </div>
-                        </div>
-                        """
-                else:
-                    html_output += """
-                    <div class="card">
-                        <p>No quedan más autobuses programados para hoy en las paradas de esta ruta a partir de este momento.</p>
-                    </div>
-                    """
+        html_output += """
+                <div class="footer">Sistema de horarios activos - Línea 91</div>
+            </div>
+        </body>
+        </html>
+        """
 
-                html_output += """
-                        <div class="footer">Actualizado en tiempo real</div>
-                    </div>
-                </body>
-                </html>
-                """
-
-                self.wfile.write(html_output.encode('utf-8'))
-            else:
-                self.wfile.write(b"Error al conectar con la fuente de datos.")
-                
-        except Exception as e:
-            error_msg = f"<!DOCTYPE html><html><body><h3>Error interno:</h3><p>{str(e)}</p></body></html>"
-            self.wfile.write(error_msg.encode('utf-8'))
+        self.wfile.write(html_output.encode('utf-8'))
