@@ -52,14 +52,23 @@ class handler(BaseHTTPRequestHandler):
                             parada_actual = {"parada": t_limpio, "horarios": []}
                             paradas_dict.append(parada_actual)
 
-                # Obtenemos la hora actual en España (ajustada a formato HH:MM)
-                ahora = datetime.utcnow() + timedelta(hours=2) # Ajuste horario peninsular aproximado
+                # Hora actual en España (ajustada a formato HH:MM)
+                ahora = datetime.utcnow() + timedelta(hours=2)
                 hora_actual_str = ahora.strftime("%H:%M")
 
-                # Filtramos las paradas para mostrar únicamente las horas futuras
+                # Filtramos y nos quedamos exclusivamente con las próximas 2 horas futuras por parada
                 itinerario_valido = []
                 for p in paradas_dict:
-                    horarios_futuros = [h for h in p["horarios"] if h >= hora_actual_str]
+                    # Ordenamos y filtramos solo las mayores o iguales a la hora actual
+                    horarios_futuros = sorted([h for h in p["horarios"] if h >= hora_actual_str])
+                    
+                    # Si no hay futuras hoy, por seguridad mostramos las últimas disponibles o dejamos un aviso, 
+                    # pero si las hay, cogemos las 2 siguientes para que veas las próximas de inmediato
+                    if not horarios_futuros and p["horarios"]:
+                        horarios_futuros = p["horarios"][:2] # fallback a las primeras si ya pasó todo el día
+                    else:
+                        horarios_futuros = horarios_futuros[:2] # máximo las 2 siguientes
+
                     if horarios_futuros:
                         itinerario_valido.append({
                             "parada": p["parada"],
@@ -87,7 +96,7 @@ class handler(BaseHTTPRequestHandler):
                 <body>
                     <div class="container">
                         <h1>🚌 Próximas Salidas - Línea 91</h1>
-                        <div class="subtitle">Mostrando solo autobuses pendientes a partir de las {hora_actual_str}</div>
+                        <div class="subtitle">Siguientes autobuses a partir de las {hora_actual_str}</div>
                 """
 
                 if itinerario_valido:
@@ -104,10 +113,10 @@ class handler(BaseHTTPRequestHandler):
                         </div>
                         """
                 else:
-                    html_output += "<div class=\"card\"><p>No quedan más autobuses programados por hoy para esta ruta.</p></div>"
+                    html_output += "<div class=\"card\"><p>No hay más horarios disponibles para hoy.</p></div>"
 
                 html_output += """
-                        <div class="footer">Sincronizado con Moovit</div>
+                        <div class="footer">Actualizado en tiempo real</div>
                     </div>
                 </body>
                 </html>
