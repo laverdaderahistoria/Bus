@@ -9,6 +9,9 @@ class handler(BaseHTTPRequestHandler):
         headers = {
             "accept": "application/json, text/plain, */*",
             "content-type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Origin": "https://moovitapp.com",
+            "Referer": "https://moovitapp.com/",
             "moovit_app_type": "WEB_TRIP_PLANNER",
             "moovit_client_version": "5.151.2/V567",
             "moovit_customer_id": "4908",
@@ -26,7 +29,7 @@ class handler(BaseHTTPRequestHandler):
         try:
             res = requests.post(url, headers=headers, json=payload, timeout=8)
             
-            self.send_response(200)
+            self.send_response(res.status_code)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
@@ -35,5 +38,6 @@ class handler(BaseHTTPRequestHandler):
         except Exception as e:
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
