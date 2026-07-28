@@ -30,14 +30,16 @@ class handler(BaseHTTPRequestHandler):
             res = requests.post(url, headers=headers, json=payload, timeout=8)
             
             self.send_response(res.status_code)
-            self.send_header('Content-type', 'application/json')
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
+            
+            # Forzar el envío del contenido devuelto por Moovit
             self.wfile.write(res.content)
             
         except Exception as e:
             self.send_response(500)
-            self.send_header('Content-type', 'application/json')
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)}).encode())
+            self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
