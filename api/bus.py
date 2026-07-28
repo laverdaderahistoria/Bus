@@ -37,27 +37,23 @@ class handler(BaseHTTPRequestHandler):
                 
                 for t in matches:
                     t_limpio = t.strip()
-                    # Ignorar CSS, vacíos o textos de la interfaz de usuario
                     if not t_limpio or "{" in t_limpio or "}" in t_limpio or any(exc.lower() in t_limpio.lower() for exc in exclusiones):
                         continue
                     
-                    # Si es una hora o bloque de horarios
                     if re.search(r'\d{1,2}:\d{2}', t_limpio) or "Additional Times" in t_limpio:
                         if parada_actual and t_limpio != "Additional Times":
-                            # Limpiamos y separamos por comas si vienen varias horas juntas
                             for hora in t_limpio.split(","):
                                 hora_limpia = hora.strip()
-                                if hora_limpia and hora_limpia not in parada_actual["horarios"]:
+                                if hora_limpia and hora_limpia != "Additional Times:" and hora_limpia not in parada_actual["horarios"]:
                                     parada_actual["horarios"].append(hora_limpia)
                     else:
-                        # Detectar nombre de parada válido (evitando números sueltos de línea como "91")
                         if len(t_limpio) > 2 and not t_limpio.isdigit():
                             parada_actual = {"parada": t_limpio, "horarios": []}
                             paradas_dict.append(parada_actual)
 
                 resultado = {
                     "linea": "TMP - Monbus 91",
-                    "itinerario": [p for p in paradas_dict if len(p["horarios"]) > 0]  # Solo devolvemos paradas que tengan horarios activos
+                    "itinerario": [p for p in paradas_dict if len(p["horarios"]) > 0]
                 }
                 
                 self.wfile.write(json.dumps(resultado, ensure_ascii=False, indent=2).encode('utf-8'))
