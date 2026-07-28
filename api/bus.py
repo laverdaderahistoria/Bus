@@ -45,34 +45,32 @@ class handler(BaseHTTPRequestHandler):
                         if parada_actual and t_limpio != "Additional Times":
                             for hora in t_limpio.split(","):
                                 hora_limpia = hora.strip()
-                                if hora_limpia and hora_limpia != "Additional Times:" and hora_limpia not in parada_actual["horarios"]:
-                                    parada_actual["horarios"].append(hora_limpia)
+                                # Validar formato estricto HH:MM
+                                if re.match(r'^\d{1,2}:\d{2}$', hora_limpia):
+                                    if hora_limpia not in parada_actual["horarios"]:
+                                        parada_actual["horarios"].append(hora_limpia)
                     else:
                         if len(t_limpio) > 2 and not t_limpio.isdigit():
                             parada_actual = {"parada": t_limpio, "horarios": []}
                             paradas_dict.append(parada_actual)
 
-                # Hora actual en España (ajustada a formato HH:MM)
+                # Hora actual exacta en España (HH:MM)
                 ahora = datetime.utcnow() + timedelta(hours=2)
                 hora_actual_str = ahora.strftime("%H:%M")
 
-                # Filtramos y nos quedamos exclusivamente con las próximas 2 horas futuras por parada
+                # Procesar y filtrar para dejar solo las horas futuras (máximo las próximas 3)
                 itinerario_valido = []
                 for p in paradas_dict:
-                    # Ordenamos y filtramos solo las mayores o iguales a la hora actual
-                    horarios_futuros = sorted([h for h in p["horarios"] if h >= hora_actual_str])
+                    # Ordenar cronológicamente todas las horas encontradas
+                    horas_ordenadas = sorted(list(set(p["horarios"])))
                     
-                    # Si no hay futuras hoy, por seguridad mostramos las últimas disponibles o dejamos un aviso, 
-                    # pero si las hay, cogemos las 2 siguientes para que veas las próximas de inmediato
-                    if not horarios_futuros and p["horarios"]:
-                        horarios_futuros = p["horarios"][:2] # fallback a las primeras si ya pasó todo el día
-                    else:
-                        horarios_futuros = horarios_futuros[:2] # máximo las 2 siguientes
-
-                    if horarios_futuros:
+                    # Filtrar estrictamente las que son mayores o iguales a la hora actual
+                    horas_futuras = [h for h in horas_ordenadas if h >= hora_actual_str][:3]
+                    
+                    if horas_futuras:
                         itinerario_valido.append({
                             "parada": p["parada"],
-                            "horarios": horarios_futuros
+                            "horarios": horas_futuras
                         })
 
                 html_output = f"""<!DOCTYPE html>
@@ -96,7 +94,7 @@ class handler(BaseHTTPRequestHandler):
                 <body>
                     <div class="container">
                         <h1>🚌 Próximas Salidas - Línea 91</h1>
-                        <div class="subtitle">Siguientes autobuses a partir de las {hora_actual_str}</div>
+                        <div class="subtitle">Horarios pendientes a partir de las {hora_actual_str}</div>
                 """
 
                 if itinerario_valido:
@@ -113,7 +111,11 @@ class handler(BaseHTTPRequestHandler):
                         </div>
                         """
                 else:
-                    html_output += "<div class=\"card\"><p>No hay más horarios disponibles para hoy.</p></div>"
+                    html_output += """
+                    <div class="card">
+                        <p>No quedan más autobuses programados para hoy en las paradas de esta ruta a partir de este momento.</p>
+                    </div>
+                    """
 
                 html_output += """
                         <div class="footer">Actualizado en tiempo real</div>
