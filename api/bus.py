@@ -5,7 +5,7 @@ import requests
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        url = "https://moovitapp.com/tripplan/murcia-3738/lines/91/65629805/5931424/en?customerId=4908"
+        url = "https://moovitapp.com/tripplan/murcia-3738/lines/lineName/65629805/5931424/en?customerId=4908&ref=16&af_sub8=%252F&af_sub9=Search%20bar%20button&query=Sangonera%20la%20Seca%20-%20Javal%C3%AD%20Nuevo%20-%20Murcia"
         
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -29,7 +29,7 @@ class handler(BaseHTTPRequestHandler):
                     "Moovit", "Cookie", "Privacy", "About", "Terms", "Ads", "Press", 
                     "Sign", "Log", "EN", "Get the App", "Community", "App Support", 
                     "Contact Us", "Change direction", "Today", "assets_", "cls-1", 
-                    "Back", "Change day", "Select a stop", "TMP - Monbus"
+                    "Back", "Change day", "Select a stop", "TMP - Monbus", "Sangonera"
                 ]
                 
                 paradas_dict = []
@@ -53,17 +53,16 @@ class handler(BaseHTTPRequestHandler):
 
                 itinerario_valido = [p for p in paradas_dict if len(p["horarios"]) > 0]
 
-                # Construimos el diseño HTML moderno y responsivo
                 html_output = f"""<!DOCTYPE html>
                 <html lang="es">
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Horarios Línea 91 - TMP Monbus</title>
+                    <title>Línea: Sangonera - Javalí - Murcia</title>
                     <style>
-                        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
+                        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
                         .container {{ max-width: 600px; margin: 0 auto; }}
-                        h1 {{ color: #1a73e8; font-size: 24px; margin-bottom: 5px; }}
+                        h1 {{ color: #1a73e8; font-size: 22px; margin-bottom: 5px; }}
                         .subtitle {{ color: #666; font-size: 14px; margin-bottom: 25px; }}
                         .card {{ background: #fff; padding: 16px 20px; margin-bottom: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid #1a73e8; }}
                         .parada-nombre {{ font-size: 16px; font-weight: bold; color: #202124; margin-bottom: 10px; }}
@@ -74,8 +73,8 @@ class handler(BaseHTTPRequestHandler):
                 </head>
                 <body>
                     <div class="container">
-                        <h1>🚌 TMP - Monbus Línea 91</h1>
-                        <div class="subtitle">Próximas llegadas en tiempo real</div>
+                        <h1>🚌 Sangonera la Seca - Javalí Nuevo - Murcia</h1>
+                        <div class="subtitle">Horarios y frecuencias de la ruta</div>
                 """
 
                 if itinerario_valido:
@@ -92,10 +91,10 @@ class handler(BaseHTTPRequestHandler):
                         </div>
                         """
                 else:
-                    html_output += "<p>No hay horarios disponibles en este momento.</p>"
+                    html_output += "<p>No hay horarios disponibles en este momento para esta ruta.</p>"
 
                 html_output += """
-                        <div class="footer">Actualizado automáticamente desde Moovit</div>
+                        <div class="footer">Sincronizado con Moovit</div>
                     </div>
                 </body>
                 </html>
